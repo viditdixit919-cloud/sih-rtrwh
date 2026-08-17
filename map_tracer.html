@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SIH25065 - AI Rooftop Rainwater Harvesting & Recharge Platform</title>
+
+  <!-- Leaflet & Leaflet Draw CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body, html { height: 100%; width: 100%; overflow: hidden; background: #020617; color: #f8fafc; }
+
+    #app-container { display: flex; height: 100vh; width: 100vw; position: relative; }
+    #map { flex: 1; height: 100%; z-index: 1; }
+
+    .leaflet-tile { image-rendering: -webkit-optimize-contrast; image-rendering: crisp-edges; }
+    .leaflet-top.leaflet-left, .leaflet-draw { display: none !important; }
+
+    /* Top Search Bar */
+    .top-bar {
+      position: absolute; top: 16px; left: 24px; z-index: 1000;
+      background: rgba(15, 23, 42, 0.94); backdrop-filter: blur(12px);
+      padding: 8px 12px; border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5); border: 1px solid rgba(255, 255, 255, 0.15);
+      display: flex; gap: 8px; align-items: center; max-width: 440px; width: calc(100% - 48px);
+    }
+    .search-input {
+      flex: 1; padding: 8px 12px; border-radius: 8px; border: 1px solid #334155;
+      background: #1e293b; color: #ffffff; font-size: 13px; outline: none;
+    }
+    .search-input:focus { border-color: #38bdf8; }
+    .btn-action {
+      padding: 8px 14px; background: #0284c7; color: white; border: none;
+      border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer;
+    }
+    .btn-action:hover { background: #0369a1; }
+    .btn-gps {
+      padding: 8px 10px; background: #334155; color: #38bdf8; border: none;
+      border-radius: 8px; font-size: 13px; cursor: pointer;
+    }
+
+    /* Bottom Control Dock */
+    .bottom-dock {
+      position: absolute; bottom: 24px; left: calc(50% - 190px); transform: translateX(-50%);
+      z-index: 1000; background: rgba(15, 23, 42, 0.94); backdrop-filter: blur(14px);
+      padding: 8px 12px; border-radius: 16px; border: 1px solid rgba(56, 189, 248, 0.35);
+      box-shadow: 0 12px 40px rgba(0, 0, 0, 0.6); display: flex; gap: 8px; align-items: center;
+    }
+    .dock-group { display: flex; gap: 4px; align-items: center; }
+    .dock-divider { width: 1px; height: 24px; background: rgba(255, 255, 255, 0.15); margin: 0 4px; }
+    .dock-btn {
+      background: #1e293b; color: #e2e8f0; border: 1px solid #475569; padding: 8px 12px;
+      border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer;
+    }
+    .dock-btn:hover { background: #334155; border-color: #38bdf8; color: #38bdf8; }
+    .dock-btn.active { background: #0284c7; border-color: #38bdf8; color: #ffffff; }
+    .dock-btn-danger { background: #7f1d1d; border-color: #991b1b; color: #fecaca; }
+    .hd-select {
+      background: #0f172a; color: #38bdf8; border: 1px solid #38bdf8; padding: 7px 10px;
+      border-radius: 8px; font-size: 12px; font-weight: 600; outline: none; cursor: pointer;
+    }
+
+    /* Right Side Hydro-Audit Panel */
+    .side-panel {
+      width: 400px; height: 100%; background: rgba(15, 23, 42, 0.96); backdrop-filter: blur(16px);
+      border-left: 1px solid rgba(56, 189, 248, 0.25); z-index: 1000; overflow-y: auto;
+      padding: 24px 20px; display: flex; flex-direction: column; gap: 16px;
+    }
+    .panel-header h2 { font-size: 16px; font-weight: 700; color: #38bdf8; }
+    .panel-header p { font-size: 12px; color: #94a3b8; margin-top: 2px; }
+
+    .stat-banner {
+      background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: 12px; padding: 12px; text-align: center;
+    }
+    .stat-banner .num { font-size: 30px; font-weight: 800; color: #38bdf8; line-height: 1; }
+    .stat-banner .lbl { font-size: 11px; text-transform: uppercase; color: #94a3b8; margin-top: 4px; letter-spacing: 0.05em; }
+
+    .form-group { display: flex; flex-direction: column; gap: 5px; }
+    .form-group label { font-size: 12px; font-weight: 600; color: #cbd5e1; }
+    .form-input, .form-select {
+      background: #1e293b; border: 1px solid #334155; color: #ffffff; padding: 8px 12px;
+      border-radius: 8px; font-size: 13px; outline: none; width: 100%;
+    }
+    .form-input:focus, .form-select:focus { border-color: #38bdf8; }
+
+    .btn-calculate {
+      background: linear-gradient(135deg, #0284c7, #0369a1); color: white; border: none;
+      padding: 12px; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer;
+      box-shadow: 0 4px 16px rgba(2, 132, 199, 0.35); transition: opacity 0.2s;
+    }
+    .btn-calculate:hover { opacity: 0.9; }
+
+    /* Results Section */
+    .results-card {
+      background: rgba(30, 41, 59, 0.85); border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px; padding: 16px; display: none; flex-direction: column; gap: 12px;
+    }
+    .res-section-title { font-size: 12px; font-weight: 700; text-transform: uppercase; color: #38bdf8; }
+    .res-row { display: flex; justify-content: space-between; font-size: 13px; color: #e2e8f0; }
+    .res-val { font-weight: 700; color: #38bdf8; }
+    .res-badge {
+      background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; color: #34d399;
+      padding: 10px; border-radius: 8px; font-size: 12px; font-weight: 600; line-height: 1.4;
+      white-space: pre-line;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="app-container">
+    <!-- Top Search Bar -->
+    <div class="top-bar">
+      <input type="text" id="searchInput" class="search-input" placeholder="Search colony, street, city..." onkeypress="if(event.key==='Enter') searchLocation()" />
+      <button class="btn-action" onclick="searchLocation()">Search</button>
+      <button class="btn-gps" onclick="locateUser()" title="GPS Location">📍</button>
+    </div>
+
+    <!-- Bottom Map Control Dock -->
+    <div class="bottom-dock">
+      <div class="dock-group">
+        <button class="dock-btn" onclick="map.zoomIn()">➕</button>
+        <button class="dock-btn" onclick="map.zoomOut()">➖</button>
+      </div>
+      <div class="dock-divider"></div>
+      <div class="dock-group">
+        <button class="dock-btn" onclick="startPolygonDraw()">⬡ Polygon</button>
+        <button class="dock-btn" onclick="spawnRoofBox()">▭ Quick Box</button>
+        <button class="dock-btn" id="btnEdit" onclick="toggleEditMode()">✎ Edit</button>
+        <button class="dock-btn dock-btn-danger" onclick="clearRoof()">🗑 Clear</button>
+      </div>
+      <div class="dock-divider"></div>
+      <div class="dock-group">
+        <select id="hdFeedSelect" class="hd-select" onchange="switchHDFeed(this.value)">
+          <option value="google_hd">🛰️ Google HD</option>
+          <option value="esri_clarity">🛰️ Esri Clarity</option>
+          <option value="bing_aerial">🛰️ Ortho View</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Map Canvas -->
+    <div id="map"></div>
+
+    <!-- Right Side Hydro-Audit Panel -->
+    <div class="side-panel">
+      <div class="panel-header">
+        <h2>Hydrogeological RTRWH Audit</h2>
+        <p id="locationTag">📍 Trace roof on map to initialize</p>
+      </div>
+
+      <div class="stat-banner">
+        <div class="num" id="areaDisplay">0.00</div>
+        <div class="lbl">Traced Catchment Area (m²)</div>
+      </div>
+
+      <div class="form-group">
+        <label>Catchment Flooring Material</label>
+        <select id="surfaceSelect" class="form-select"></select>
+      </div>
+
+      <div class="form-group">
+        <label>Roof Geometry / Slope</label>
+        <select id="slopeSelect" class="form-select">
+          <option value="flat">Flat Roof (< 2°)</option>
+          <option value="pitched">Pitched / Sloped Roof (> 10°)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>Annual Rainfall (mm)</label>
+        <input type="number" id="rainInput" class="form-input" value="950" />
+      </div>
+
+      <div class="form-group">
+        <label>Subsurface Soil Category</label>
+        <select id="soilSelect" class="form-select"></select>
+      </div>
+
+      <div class="form-group">
+        <label>Depth to Groundwater Table (m)</label>
+        <input type="number" id="waterTableInput" class="form-input" value="6.5" step="0.5" />
+      </div>
+
+      <div class="form-group">
+        <label>Water Cost (₹ / 1,000 Liters)</label>
+        <input type="number" id="waterCostInput" class="form-input" value="60" />
+      </div>
+
+      <button class="btn-calculate" onclick="calculateAudit()">⚡ Generate Full Audit</button>
+
+      <!-- Results Card -->
+      <div class="results-card" id="resultsCard">
+        <div class="res-section-title">Audit Results</div>
+        <div id="structureBadge" class="res-badge"></div>
+        <div class="res-row">
+          <span>Annual Yield:</span>
+          <span class="res-val" id="resYield">-- L</span>
+        </div>
+        <div class="res-row">
+          <span>First-Flush Diverter:</span>
+          <span class="res-val" id="resFlush">-- L</span>
+        </div>
+        <div class="res-row" id="pitDimRow" style="display: none;">
+          <span>Recharge Pit Size:</span>
+          <span class="res-val" id="resPitDim">--</span>
+        </div>
+        <div class="res-row">
+          <span>Estimated CapEx:</span>
+          <span class="res-val" id="resCost">₹ --</span>
+        </div>
+        <div class="res-row">
+          <span>Annual Financial Savings:</span>
+          <span class="res-val" id="resSavings">₹ --</span>
+        </div>
+        <div class="res-row">
+          <span>Payback Period:</span>
+          <span class="res-val" id="resPayback">-- yrs</span>
+        </div>
+        <div class="res-row">
+          <span>CO₂ Reduction:</span>
+          <span class="res-val" id="resCO2">-- kg/yr</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Leaflet, Leaflet Draw, and Turf.js -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+  <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
+
+  <script>
+    // 1. Map Initialization
+    const map = L.map('map', {
+      center: [26.4499, 80.3319],
+      zoom: 18,
+      maxZoom: 22,
+      zoomSnap: 0.5,
+      zoomDelta: 0.5,
+      zoomControl: false
+    });
+
+    const hdLayers = {
+      google_hd: L.tileLayer('https://mt{s}.google.com/vt/lyrs=s&x={x}&y={y}&z={z}&scale=2', {
+        subdomains: ['0', '1', '2', '3'], maxZoom: 22, maxNativeZoom: 20, attribution: '&copy; Google Satellite'
+      }),
+      esri_clarity: L.tileLayer('https://clarity.maptiles.arcgis.com/arcgis/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 22, maxNativeZoom: 19, attribution: '&copy; Esri Clarity'
+      }),
+      bing_aerial: L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+        maxZoom: 22, maxNativeZoom: 19, attribution: '&copy; Ortho High-Contrast'
+      })
+    };
+    let currentBaseLayer = hdLayers.google_hd.addTo(map);
+
+    L.tileLayer('https://mt{s}.google.com/vt/lyrs=h&x={x}&y={y}&z={z}', {
+      subdomains: ['0', '1', '2', '3'], maxZoom: 22, maxNativeZoom: 20, pane: 'overlayPane'
+    }).addTo(map);
+
+    function switchHDFeed(k) { map.removeLayer(currentBaseLayer); currentBaseLayer = hdLayers[k].addTo(map); }
+
+    // 2. Populate Dropdowns from Backend API
+    async function loadMaterials() {
+      try {
+        const res = await fetch('/api/materials');
+        const data = await res.json();
+        const sSelect = document.getElementById('surfaceSelect');
+        const gSelect = document.getElementById('soilSelect');
+
+        data.surfaces.forEach(s => {
+          const opt = document.createElement('option');
+          opt.value = s.key;
+          opt.innerText = s.name;
+          if (s.key === 'concrete') opt.selected = true;
+          sSelect.appendChild(opt);
+        });
+
+        data.soils.forEach(g => {
+          const opt = document.createElement('option');
+          opt.value = g.key;
+          opt.innerText = g.name;
+          if (g.key === 'loam') opt.selected = true;
+          gSelect.appendChild(opt);
+        });
+      } catch (err) {
+        console.error('Could not connect to API materials endpoint.', err);
+      }
+    }
+    loadMaterials();
+
+    // 3. Drawing Controls & Geometry
+    const drawnItems = new L.FeatureGroup();
+    map.addLayer(drawnItems);
+    let activePolygon = null, isEditing = false, currentDrawer = null, currentAreaSqm = 0;
+
+    function startPolygonDraw() {
+      if (currentDrawer) currentDrawer.disable();
+      currentDrawer = new L.Draw.Polygon(map, {
+        allowIntersection: false, showArea: true,
+        shapeOptions: { color: '#38bdf8', weight: 3, fillColor: '#38bdf8', fillOpacity: 0.4 }
+      });
+      currentDrawer.enable();
+    }
+
+    function spawnRoofBox() {
+      clearRoof();
+      const c = map.getCenter();
+      const latlngs = [
+        [c.lat - 0.00008, c.lng - 0.00008],
+        [c.lat - 0.00008, c.lng + 0.00008],
+        [c.lat + 0.00008, c.lng + 0.00008],
+        [c.lat + 0.00008, c.lng - 0.00008]
+      ];
+      activePolygon = L.polygon(latlngs, { color: '#38bdf8', weight: 3, fillColor: '#38bdf8', fillOpacity: 0.4 });
+      drawnItems.addLayer(activePolygon);
+      enableEditing(activePolygon);
+      updateArea(activePolygon);
+    }
+
+    function toggleEditMode() {
+      if (!activePolygon) return alert('Please trace or spawn a roof first.');
+      const btn = document.getElementById('btnEdit');
+      if (isEditing) { activePolygon.editing.disable(); btn.classList.remove('active'); isEditing = false; }
+      else { activePolygon.editing.enable(); btn.classList.add('active'); isEditing = true; }
+    }
+
+    function enableEditing(l) {
+      if (l.editing) { l.editing.enable(); document.getElementById('btnEdit').classList.add('active'); isEditing = true; }
+      l.on('edit', () => updateArea(l));
+    }
+
+    map.on(L.Draw.Event.CREATED, e => {
+      clearRoof(); activePolygon = e.layer; drawnItems.addLayer(activePolygon);
+      enableEditing(activePolygon); updateArea(activePolygon);
+    });
+
+    function clearRoof() {
+      drawnItems.clearLayers(); if (currentDrawer) currentDrawer.disable();
+      activePolygon = null; isEditing = false; document.getElementById('btnEdit').classList.remove('active');
+      currentAreaSqm = 0; document.getElementById('areaDisplay').innerText = '0.00';
+    }
+
+    function updateArea(l) {
+      const geojson = l.toGeoJSON();
+      const area = turf.area(geojson);
+      currentAreaSqm = Math.round(area * 100) / 100;
+      document.getElementById('areaDisplay').innerText = currentAreaSqm.toLocaleString('en-IN', { minimumFractionDigits: 2 });
+      const [lng, lat] = turf.centroid(geojson).geometry.coordinates;
+      reverseGeocode(lat, lng);
+    }
+
+    // 4. Geocoding & GPS
+    async function searchLocation() {
+      const q = document.getElementById('searchInput').value.trim();
+      if (!q) return;
+      try {
+        const r = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}`);
+        const d = await r.json();
+        if (d && d.length > 0) {
+          map.flyTo([parseFloat(d[0].lat), parseFloat(d[0].lon)], 19, { duration: 1.5 });
+          document.getElementById('locationTag').innerText = `📍 ${d[0].display_name.split(',')[0]}`;
+        }
+      } catch (err) { alert('Location search failed.'); }
+    }
+
+    async function reverseGeocode(lat, lng) {
+      try {
+        const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+        const d = await r.json();
+        if (d && d.address) {
+          const loc = d.address.suburb || d.address.neighbourhood || d.address.road || d.address.city || 'Identified Roof';
+          document.getElementById('locationTag').innerText = `📍 ${loc}`;
+        }
+      } catch (e) { document.getElementById('locationTag').innerText = '📍 Custom Roof Location'; }
+    }
+
+    function locateUser() {
+      if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(p => map.flyTo([p.coords.latitude, p.coords.longitude], 19.5, { duration: 1.5 }));
+      }
+    }
+
+    // 5. REST API Execution
+    async function calculateAudit() {
+      if (currentAreaSqm <= 0) return alert('Please trace a roof polygon or click "▭ Quick Box" first.');
+
+      const payload = {
+        roof_area_sqm: currentAreaSqm,
+        annual_rainfall_mm: parseFloat(document.getElementById('rainInput').value),
+        surface_splits: [{ surface: document.getElementById('surfaceSelect').value, percentage: 100.0 }],
+        soil_key: document.getElementById('soilSelect').value,
+        water_table_depth_m: parseFloat(document.getElementById('waterTableInput').value),
+        roof_slope: document.getElementById('slopeSelect').value,
+        water_cost_per_kl_inr: parseFloat(document.getElementById('waterCostInput').value)
+      };
+
+      try {
+        const res = await fetch('/api/calculate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const resJson = await res.json();
+
+        if (!res.ok) throw new Error(resJson.detail || 'Calculation error');
+
+        const audit = resJson.data;
+        const rec = audit["Engineering Recommendation"];
+        const hydro = audit["Hydrology"];
+        const roi = audit["Financial and Carbon ROI"];
+
+        const systemType = rec["System Type"] || rec["system_type"];
+        const designRationale = rec["Design Rationale"] || rec["design_rationale"];
+
+        document.getElementById('resultsCard').style.display = 'flex';
+        document.getElementById('structureBadge').innerText = `${systemType}\n\n${designRationale}`;
+        document.getElementById('resYield').innerText = `${hydro["Annual Harvestable Liters"].toLocaleString('en-IN')} L`;
+        document.getElementById('resFlush').innerText = `${hydro["First Flush Diverter Liters"]} L`;
+
+        // Display Pit Dimensions if present
+        const pitDims = rec["Recharge Pit Dimensions"];
+        const pitDimRow = document.getElementById('pitDimRow');
+        if (pitDims && pitDims["Diameter Meters"]) {
+          pitDimRow.style.display = 'flex';
+          document.getElementById('resPitDim').innerText = `Ø ${pitDims["Diameter Meters"]}m × ${pitDims["Depth Meters"]}m deep`;
+        } else {
+          pitDimRow.style.display = 'none';
+        }
+
+        document.getElementById('resCost').innerText = `₹ ${roi["Total capex inr"].toLocaleString('en-IN')}`;
+        document.getElementById('resSavings').innerText = `₹ ${roi["Annual savings inr"].toLocaleString('en-IN')}/yr`;
+        document.getElementById('resPayback').innerText = `${roi["Payback years"]} Yrs`;
+        document.getElementById('resCO2').innerText = `${roi["CO2 reduction kg year"]} kg/yr`;
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+  </script>
+</body>
+</html>
