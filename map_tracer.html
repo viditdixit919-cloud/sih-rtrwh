@@ -43,7 +43,7 @@
       border-radius: 8px; font-size: 13px; cursor: pointer;
     }
 
-    /* Isolated Floating Tracer Banner (Locked safely inside map canvas) */
+    /* Isolated Floating Tracer Banner */
     .draw-active-banner {
       position: absolute; top: 16px; left: 380px; z-index: 1000;
       background: rgba(15, 23, 42, 0.96); backdrop-filter: blur(14px);
@@ -63,7 +63,7 @@
     }
     .btn-cancel-draw:hover { background: #64748b; color: #ffffff; }
 
-    /* Bottom Control Dock (Floating at bottom center of map) */
+    /* Bottom Control Dock */
     .bottom-dock {
       position: absolute; bottom: 24px; left: 50%; transform: translateX(-50%);
       z-index: 1000; background: rgba(15, 23, 42, 0.94); backdrop-filter: blur(14px);
@@ -108,6 +108,9 @@
       border-radius: 8px; font-size: 12px; outline: none; width: 100%;
     }
     .form-input:focus, .form-select:focus { border-color: #38bdf8; }
+    
+    /* Loading text for auto fetch */
+    .auto-fetch-text { font-size: 10px; color: #34d399; font-weight: normal; }
 
     /* Flooring Percentage Allocation Box */
     .flooring-card {
@@ -132,12 +135,15 @@
       padding: 6px 9px; font-size: 11px; cursor: pointer;
     }
     .flooring-item-bottom { display: flex; align-items: center; gap: 8px; }
+    
+    /* FIX: Added 'appearance: none;' to fix the VS Code warning */
     .flooring-slider {
-      flex: 1; height: 5px; -webkit-appearance: none; background: #334155; border-radius: 4px; outline: none;
+      flex: 1; height: 5px; -webkit-appearance: none; appearance: none; background: #334155; border-radius: 4px; outline: none;
     }
     .flooring-slider::-webkit-slider-thumb {
-      -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #38bdf8; cursor: pointer;
+      -webkit-appearance: none; appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #38bdf8; cursor: pointer;
     }
+    
     .flooring-pct-input {
       width: 62px; background: #1e293b; border: 1px solid #475569; color: #38bdf8;
       border-radius: 6px; padding: 4px 6px; font-size: 12px; font-weight: 700; text-align: center;
@@ -273,7 +279,10 @@
       </div>
 
       <div class="form-group">
-        <label>Annual Rainfall (mm)</label>
+        <label>
+          Annual Rainfall (mm)
+          <span class="auto-fetch-text" id="rainAutoText"></span>
+        </label>
         <input type="number" id="rainInput" class="form-input" value="950" />
       </div>
 
@@ -283,7 +292,10 @@
       </div>
 
       <div class="form-group">
-        <label>Depth to Groundwater Table (m)</label>
+        <label>
+          Depth to Groundwater (m)
+          <span class="auto-fetch-text" id="wtAutoText"></span>
+        </label>
         <input type="number" id="waterTableInput" class="form-input" value="6.5" step="0.5" />
       </div>
 
@@ -624,6 +636,10 @@
       currentAreaSqm = 0;
       document.getElementById('areaDisplay').innerText = '0.00';
       document.getElementById('resultsContainer').style.display = 'none';
+      
+      // Reset texts
+      document.getElementById('rainAutoText').innerText = '';
+      document.getElementById('wtAutoText').innerText = '';
     }
 
     function updateArea(l) {
@@ -631,11 +647,54 @@
       const area = turf.area(geojson);
       currentAreaSqm = Math.round(area * 100) / 100;
       document.getElementById('areaDisplay').innerText = currentAreaSqm.toLocaleString('en-IN', { minimumFractionDigits: 2 });
+      
       const [lng, lat] = turf.centroid(geojson).geometry.coordinates;
-      reverseGeocode(lat, lng);
+      reverseGeocodeAndFetchEnv(lat, lng);
     }
 
-    // 4. Geocoding & GPS
+    async function reverseGeocodeAndFetchEnv(lat, lng) {
+      document.getElementById('rainAutoText').innerText = ' (Fetching live data...)';
+      document.getElementById('wtAutoText').innerText = ' (Fetching CGWB data...)';
+
+      let district = '';
+      try {
+        // 1. Get Address
+        const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
+        const d = await r.json();
+        if (d && d.address) {
+          district = d.address.state_district || d.address.city || d.address.county || d.address.state || '';
+          const loc = d.address.suburb || d.address.neighbourhood || d.address.road || district || 'Identified Roof';
+          document.getElementById('locationTag').innerText = `📍 ${loc}`;
+        }
+      } catch (e) {
+        document.getElementById('locationTag').innerText = '📍 Custom Roof Location';
+      }
+
+      // 2. Fetch Auto Groundwater & Rainfall from our Backend
+      try {
+        const envRes = await fetch('/api/lookup-environment', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ lat: lat, lng: lng, district: district })
+        });
+        const envData = await envRes.json();
+        
+        if (envData.water_table_depth_m) {
+          document.getElementById('waterTableInput').value = envData.water_table_depth_m;
+          document.getElementById('wtAutoText').innerText = ' ✓ Auto-Filled (CGWB)';
+        }
+        if (envData.annual_rainfall_mm) {
+          document.getElementById('rainInput').value = envData.annual_rainfall_mm;
+          document.getElementById('rainAutoText').innerText = ' ✓ Auto-Filled (Open-Meteo)';
+        }
+      } catch (e) {
+        document.getElementById('wtAutoText').innerText = ' (Manual input required)';
+        document.getElementById('rainAutoText').innerText = ' (Manual input required)';
+        console.error("Could not fetch environmental data", e);
+      }
+    }
+
+    // Geocoding & GPS
     async function searchLocation() {
       const q = document.getElementById('searchInput').value.trim();
       if (!q) return;
@@ -647,17 +706,6 @@
           document.getElementById('locationTag').innerText = `📍 ${d[0].display_name.split(',')[0]}`;
         }
       } catch (err) { alert('Location search failed.'); }
-    }
-
-    async function reverseGeocode(lat, lng) {
-      try {
-        const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
-        const d = await r.json();
-        if (d && d.address) {
-          const loc = d.address.suburb || d.address.neighbourhood || d.address.road || d.address.city || 'Identified Roof';
-          document.getElementById('locationTag').innerText = `📍 ${loc}`;
-        }
-      } catch (e) { document.getElementById('locationTag').innerText = '📍 Custom Roof Location'; }
     }
 
     function locateUser() {
