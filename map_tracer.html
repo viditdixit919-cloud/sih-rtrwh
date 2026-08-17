@@ -42,6 +42,26 @@
       border-radius: 8px; font-size: 13px; cursor: pointer;
     }
 
+    /* Active Polygon Tracing Banner */
+    .draw-active-banner {
+      position: absolute; top: 76px; left: 50%; transform: translateX(-50%);
+      z-index: 1000; background: rgba(15, 23, 42, 0.96); backdrop-filter: blur(14px);
+      padding: 10px 18px; border-radius: 14px; border: 1px solid #38bdf8;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6); display: none; gap: 12px; align-items: center;
+    }
+    .draw-status-text { font-size: 13px; font-weight: 600; color: #38bdf8; }
+    .btn-finish-draw {
+      background: #10b981; color: white; border: none; padding: 6px 14px;
+      border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer;
+      transition: background 0.2s;
+    }
+    .btn-finish-draw:hover { background: #059669; }
+    .btn-cancel-draw {
+      background: #475569; color: #cbd5e1; border: none; padding: 6px 10px;
+      border-radius: 8px; font-size: 12px; cursor: pointer;
+    }
+    .btn-cancel-draw:hover { background: #64748b; color: #ffffff; }
+
     /* Bottom Control Dock */
     .bottom-dock {
       position: absolute; bottom: 24px; left: calc(50% - 190px); transform: translateX(-50%);
@@ -54,6 +74,7 @@
     .dock-btn {
       background: #1e293b; color: #e2e8f0; border: 1px solid #475569; padding: 8px 12px;
       border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer;
+      transition: all 0.2s;
     }
     .dock-btn:hover { background: #334155; border-color: #38bdf8; color: #38bdf8; }
     .dock-btn.active { background: #0284c7; border-color: #38bdf8; color: #ffffff; }
@@ -65,47 +86,110 @@
 
     /* Right Side Hydro-Audit Panel */
     .side-panel {
-      width: 400px; height: 100%; background: rgba(15, 23, 42, 0.96); backdrop-filter: blur(16px);
+      width: 460px; height: 100%; background: rgba(15, 23, 42, 0.97); backdrop-filter: blur(20px);
       border-left: 1px solid rgba(56, 189, 248, 0.25); z-index: 1000; overflow-y: auto;
-      padding: 24px 20px; display: flex; flex-direction: column; gap: 16px;
+      padding: 22px 18px; display: flex; flex-direction: column; gap: 14px;
     }
-    .panel-header h2 { font-size: 16px; font-weight: 700; color: #38bdf8; }
+    .panel-header h2 { font-size: 17px; font-weight: 800; color: #38bdf8; letter-spacing: -0.01em; }
     .panel-header p { font-size: 12px; color: #94a3b8; margin-top: 2px; }
 
     .stat-banner {
-      background: rgba(56, 189, 248, 0.08); border: 1px solid rgba(56, 189, 248, 0.25);
-      border-radius: 12px; padding: 12px; text-align: center;
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.12), rgba(2, 132, 199, 0.05));
+      border: 1px solid rgba(56, 189, 248, 0.3); border-radius: 14px; padding: 12px; text-align: center;
     }
     .stat-banner .num { font-size: 30px; font-weight: 800; color: #38bdf8; line-height: 1; }
-    .stat-banner .lbl { font-size: 11px; text-transform: uppercase; color: #94a3b8; margin-top: 4px; letter-spacing: 0.05em; }
+    .stat-banner .lbl { font-size: 11px; text-transform: uppercase; color: #94a3b8; margin-top: 4px; letter-spacing: 0.05em; font-weight: 600; }
 
-    .form-group { display: flex; flex-direction: column; gap: 5px; }
-    .form-group label { font-size: 12px; font-weight: 600; color: #cbd5e1; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    .form-group label { font-size: 12px; font-weight: 600; color: #cbd5e1; display: flex; justify-content: space-between; align-items: center; }
     .form-input, .form-select {
-      background: #1e293b; border: 1px solid #334155; color: #ffffff; padding: 8px 12px;
-      border-radius: 8px; font-size: 13px; outline: none; width: 100%;
+      background: #1e293b; border: 1px solid #334155; color: #ffffff; padding: 8px 10px;
+      border-radius: 8px; font-size: 12px; outline: none; width: 100%;
     }
     .form-input:focus, .form-select:focus { border-color: #38bdf8; }
 
+    /* Flooring Percentage Allocation Box */
+    .flooring-card {
+      background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 10px;
+    }
+    .flooring-card-header { display: flex; justify-content: space-between; align-items: center; }
+    .flooring-title { font-size: 12px; font-weight: 700; color: #e2e8f0; }
+    .flooring-badge { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 6px; }
+    .badge-valid { background: rgba(16, 185, 129, 0.2); color: #34d399; border: 1px solid #10b981; }
+    .badge-invalid { background: rgba(239, 68, 68, 0.2); color: #f87171; border: 1px solid #ef4444; }
+
+    .flooring-list { display: flex; flex-direction: column; gap: 10px; }
+    .flooring-item {
+      background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px; padding: 10px; display: flex; flex-direction: column; gap: 6px;
+    }
+    .flooring-item-top { display: flex; gap: 6px; align-items: center; }
+    .flooring-item-top .form-select { flex: 1; }
+    .btn-remove-row {
+      background: #7f1d1d; color: #fecaca; border: none; border-radius: 6px;
+      padding: 6px 9px; font-size: 11px; cursor: pointer;
+    }
+    .flooring-item-bottom { display: flex; align-items: center; gap: 8px; }
+    .flooring-slider {
+      flex: 1; height: 5px; -webkit-appearance: none; background: #334155; border-radius: 4px; outline: none;
+    }
+    .flooring-slider::-webkit-slider-thumb {
+      -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #38bdf8; cursor: pointer;
+    }
+    .flooring-pct-input {
+      width: 62px; background: #1e293b; border: 1px solid #475569; color: #38bdf8;
+      border-radius: 6px; padding: 4px 6px; font-size: 12px; font-weight: 700; text-align: center;
+    }
+
+    .flooring-actions { display: flex; gap: 6px; margin-top: 4px; }
+    .btn-add-flooring {
+      flex: 1; background: #1e293b; color: #38bdf8; border: 1px dashed #38bdf8;
+      border-radius: 8px; padding: 7px; font-size: 11px; font-weight: 700; cursor: pointer;
+    }
+    .btn-add-flooring:hover { background: rgba(56, 189, 248, 0.12); }
+    .btn-auto-balance {
+      background: #334155; color: #e2e8f0; border: 1px solid #475569;
+      border-radius: 8px; padding: 7px 10px; font-size: 11px; font-weight: 600; cursor: pointer;
+    }
+    .btn-auto-balance:hover { background: #475569; color: #ffffff; }
+
     .btn-calculate {
       background: linear-gradient(135deg, #0284c7, #0369a1); color: white; border: none;
-      padding: 12px; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer;
-      box-shadow: 0 4px 16px rgba(2, 132, 199, 0.35); transition: opacity 0.2s;
+      padding: 13px; border-radius: 10px; font-size: 14px; font-weight: 700; cursor: pointer;
+      box-shadow: 0 4px 20px rgba(2, 132, 199, 0.4); transition: opacity 0.2s;
     }
     .btn-calculate:hover { opacity: 0.9; }
 
-    /* Results Section */
-    .results-card {
-      background: rgba(30, 41, 59, 0.85); border: 1px solid rgba(255, 255, 255, 0.08);
-      border-radius: 12px; padding: 16px; display: none; flex-direction: column; gap: 12px;
+    /* Results Dashboard */
+    #resultsContainer { display: none; flex-direction: column; gap: 12px; margin-top: 4px; }
+    .res-section {
+      background: rgba(30, 41, 59, 0.7); border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px;
     }
-    .res-section-title { font-size: 12px; font-weight: 700; text-transform: uppercase; color: #38bdf8; }
-    .res-row { display: flex; justify-content: space-between; font-size: 13px; color: #e2e8f0; }
-    .res-val { font-weight: 700; color: #38bdf8; }
-    .res-badge {
-      background: rgba(16, 185, 129, 0.15); border: 1px solid #10b981; color: #34d399;
-      padding: 10px; border-radius: 8px; font-size: 12px; font-weight: 600; line-height: 1.4;
-      white-space: pre-line;
+    .res-sec-header {
+      display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08); padding-bottom: 6px;
+    }
+    .res-sec-title { font-size: 12px; font-weight: 700; text-transform: uppercase; color: #38bdf8; display: flex; align-items: center; gap: 6px; }
+    .res-sec-badge { font-size: 10px; padding: 2px 8px; border-radius: 6px; font-weight: 700; }
+    .badge-primary { background: rgba(56, 189, 248, 0.2); color: #38bdf8; }
+    .badge-success { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+    .badge-warning { background: rgba(245, 158, 11, 0.2); color: #fbbf24; }
+
+    .res-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .kpi-card {
+      background: rgba(15, 23, 42, 0.6); border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 8px; padding: 8px; text-align: center;
+    }
+    .kpi-card .v { font-size: 15px; font-weight: 800; color: #ffffff; }
+    .kpi-card .l { font-size: 9px; color: #94a3b8; text-transform: uppercase; margin-top: 2px; }
+
+    .res-row { display: flex; justify-content: space-between; font-size: 12px; color: #cbd5e1; align-items: center; }
+    .res-row .val { font-weight: 700; color: #f8fafc; }
+    .res-rationale {
+      font-size: 11px; line-height: 1.4; color: #94a3b8; background: rgba(15, 23, 42, 0.5);
+      padding: 8px; border-radius: 6px; border-left: 3px solid #38bdf8;
     }
   </style>
 </head>
@@ -119,6 +203,13 @@
       <button class="btn-gps" onclick="locateUser()" title="GPS Location">📍</button>
     </div>
 
+    <!-- Active Polygon Tracing Banner -->
+    <div class="draw-active-banner" id="drawBanner">
+      <span class="draw-status-text" id="drawStatus">Click on map to place roof corners...</span>
+      <button class="btn-finish-draw" id="btnFinishPolygon" onclick="finishPolygonTrace()">✓ Finish & Measure</button>
+      <button class="btn-cancel-draw" onclick="cancelPolygonTrace()">✕ Cancel</button>
+    </div>
+
     <!-- Bottom Map Control Dock -->
     <div class="bottom-dock">
       <div class="dock-group">
@@ -127,7 +218,7 @@
       </div>
       <div class="dock-divider"></div>
       <div class="dock-group">
-        <button class="dock-btn" onclick="startPolygonDraw()">⬡ Polygon</button>
+        <button class="dock-btn" id="btnPolyToggle" onclick="startPolygonDraw()">⬡ Polygon</button>
         <button class="dock-btn" onclick="spawnRoofBox()">▭ Quick Box</button>
         <button class="dock-btn" id="btnEdit" onclick="toggleEditMode()">✎ Edit</button>
         <button class="dock-btn dock-btn-danger" onclick="clearRoof()">🗑 Clear</button>
@@ -157,9 +248,17 @@
         <div class="lbl">Traced Catchment Area (m²)</div>
       </div>
 
-      <div class="form-group">
-        <label>Catchment Flooring Material</label>
-        <select id="surfaceSelect" class="form-select"></select>
+      <!-- Percent-wise Flooring Allocation Section -->
+      <div class="flooring-card">
+        <div class="flooring-card-header">
+          <span class="flooring-title">Flooring Material Splits</span>
+          <span id="flooringBadge" class="flooring-badge badge-valid">Allocated: 100%</span>
+        </div>
+        <div class="flooring-list" id="flooringList"></div>
+        <div class="flooring-actions">
+          <button type="button" class="btn-add-flooring" onclick="addFlooringRow()">+ Add Flooring Material</button>
+          <button type="button" class="btn-auto-balance" onclick="autoBalanceFlooring()" title="Evenly split 100% across all rows">⚖️ Auto-Balance</button>
+        </div>
       </div>
 
       <div class="form-group">
@@ -192,48 +291,98 @@
 
       <button class="btn-calculate" onclick="calculateAudit()">⚡ Generate Full Audit</button>
 
-      <!-- Results Card -->
-      <div class="results-card" id="resultsCard">
-        <div class="res-section-title">Audit Results</div>
-        <div id="structureBadge" class="res-badge"></div>
-        <div class="res-row">
-          <span>Annual Yield:</span>
-          <span class="res-val" id="resYield">-- L</span>
+      <!-- Results Sections -->
+      <div id="resultsContainer">
+        <!-- 1. Hydrology -->
+        <div class="res-section">
+          <div class="res-sec-header">
+            <span class="res-sec-title">💧 Hydrological Potential</span>
+            <span class="res-sec-badge badge-primary">Weighted C: <span id="resCoeff">--</span></span>
+          </div>
+          <div class="res-grid-2">
+            <div class="kpi-card">
+              <div class="v" id="resYield" style="color: #38bdf8;">-- L</div>
+              <div class="l">Annual Harvestable</div>
+            </div>
+            <div class="kpi-card">
+              <div class="v" id="resFlush" style="color: #fbbf24;">-- L</div>
+              <div class="l">First Flush Volume</div>
+            </div>
+          </div>
         </div>
-        <div class="res-row">
-          <span>First-Flush Diverter:</span>
-          <span class="res-val" id="resFlush">-- L</span>
+
+        <!-- 2. Civil Recommendation -->
+        <div class="res-section">
+          <div class="res-sec-header">
+            <span class="res-sec-title">🏗️ Civil Recommendation</span>
+            <span class="res-sec-badge badge-success">CGWB Norms</span>
+          </div>
+          <div class="res-row">
+            <span>System Architecture:</span>
+            <span class="val" id="resSystemType" style="color: #34d399;">--</span>
+          </div>
+          <div class="res-rationale" id="resRationale">--</div>
+          <div id="pitDimensionsBlock" style="display: none; flex-direction: column; gap: 6px;">
+            <div class="res-row">
+              <span>Recharge Pit Dimensions:</span>
+              <span class="val" id="resPitDim">--</span>
+            </div>
+            <div class="res-row">
+              <span>Safe Aquifer Clearance:</span>
+              <span class="val" id="resClearance">--</span>
+            </div>
+          </div>
         </div>
-        <div class="res-row" id="pitDimRow" style="display: none;">
-          <span>Recharge Pit Size:</span>
-          <span class="res-val" id="resPitDim">--</span>
+
+        <!-- 3. Financial Feasibility -->
+        <div class="res-section">
+          <div class="res-sec-header">
+            <span class="res-sec-title">💰 Financial Feasibility</span>
+            <span class="res-sec-badge badge-warning">Economic ROI</span>
+          </div>
+          <div class="res-grid-2">
+            <div class="kpi-card">
+              <div class="v" id="resCost">₹ --</div>
+              <div class="l">Estimated CapEx</div>
+            </div>
+            <div class="kpi-card">
+              <div class="v" id="resSavings" style="color: #34d399;">₹ --</div>
+              <div class="l">Annual Savings</div>
+            </div>
+          </div>
+          <div class="res-row">
+            <span>Payback Period:</span>
+            <span class="val" id="resPayback" style="color: #38bdf8;">-- Yrs</span>
+          </div>
         </div>
-        <div class="res-row">
-          <span>Estimated CapEx:</span>
-          <span class="res-val" id="resCost">₹ --</span>
-        </div>
-        <div class="res-row">
-          <span>Annual Financial Savings:</span>
-          <span class="res-val" id="resSavings">₹ --</span>
-        </div>
-        <div class="res-row">
-          <span>Payback Period:</span>
-          <span class="res-val" id="resPayback">-- yrs</span>
-        </div>
-        <div class="res-row">
-          <span>CO₂ Reduction:</span>
-          <span class="res-val" id="resCO2">-- kg/yr</span>
+
+        <!-- 4. Environmental Impact -->
+        <div class="res-section">
+          <div class="res-sec-header">
+            <span class="res-sec-title">🌿 Environmental Impact</span>
+            <span class="res-sec-badge badge-success">ESG Carbon Offset</span>
+          </div>
+          <div class="res-row">
+            <span>Pumping Energy Saved:</span>
+            <span class="val" id="resKwh">-- kWh/yr</span>
+          </div>
+          <div class="res-row">
+            <span>CO₂ Emission Reduction:</span>
+            <span class="val" id="resCO2" style="color: #34d399;">-- kg/yr</span>
+          </div>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- Leaflet, Leaflet Draw, and Turf.js -->
+  <!-- Leaflet & Turf.js -->
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
   <script src="https://unpkg.com/@turf/turf@6/turf.min.js"></script>
 
   <script>
+    let globalSurfaces = [];
+
     // 1. Map Initialization
     const map = L.map('map', {
       center: [26.4499, 80.3319],
@@ -263,22 +412,14 @@
 
     function switchHDFeed(k) { map.removeLayer(currentBaseLayer); currentBaseLayer = hdLayers[k].addTo(map); }
 
-    // 2. Populate Dropdowns from Backend API
+    // 2. Load Dropdown Options & Initialize Percent-wise Flooring UI
     async function loadMaterials() {
       try {
         const res = await fetch('/api/materials');
         const data = await res.json();
-        const sSelect = document.getElementById('surfaceSelect');
+        globalSurfaces = data.surfaces;
+
         const gSelect = document.getElementById('soilSelect');
-
-        data.surfaces.forEach(s => {
-          const opt = document.createElement('option');
-          opt.value = s.key;
-          opt.innerText = s.name;
-          if (s.key === 'concrete') opt.selected = true;
-          sSelect.appendChild(opt);
-        });
-
         data.soils.forEach(g => {
           const opt = document.createElement('option');
           opt.value = g.key;
@@ -286,27 +427,166 @@
           if (g.key === 'loam') opt.selected = true;
           gSelect.appendChild(opt);
         });
+
+        // Initialize 1st Row at 100%
+        addFlooringRow('concrete', 100);
       } catch (err) {
-        console.error('Could not connect to API materials endpoint.', err);
+        console.error('Could not load material databases from API.', err);
       }
     }
     loadMaterials();
 
-    // 3. Drawing Controls & Geometry
+    function addFlooringRow(defaultKey = 'concrete', defaultPct = 0) {
+      const list = document.getElementById('flooringList');
+      const item = document.createElement('div');
+      item.className = 'flooring-item';
+
+      const rowTop = document.createElement('div');
+      rowTop.className = 'flooring-item-top';
+
+      const select = document.createElement('select');
+      select.className = 'form-select mat-select';
+      globalSurfaces.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.key;
+        opt.innerText = s.name;
+        if (s.key === defaultKey) opt.selected = true;
+        select.appendChild(opt);
+      });
+
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.className = 'btn-remove-row';
+      removeBtn.innerText = '✕';
+      removeBtn.onclick = () => {
+        if (document.querySelectorAll('.flooring-item').length > 1) {
+          item.remove();
+          validateFlooringAllocations();
+        } else {
+          alert('At least one flooring material is required.');
+        }
+      };
+
+      rowTop.appendChild(select);
+      rowTop.appendChild(removeBtn);
+
+      const rowBottom = document.createElement('div');
+      rowBottom.className = 'flooring-item-bottom';
+
+      const slider = document.createElement('input');
+      slider.type = 'range';
+      slider.className = 'flooring-slider';
+      slider.min = '0';
+      slider.max = '100';
+      slider.value = defaultPct;
+
+      const numInput = document.createElement('input');
+      numInput.type = 'number';
+      numInput.className = 'flooring-pct-input';
+      numInput.min = '0';
+      numInput.max = '100';
+      numInput.value = defaultPct;
+
+      slider.oninput = () => { numInput.value = slider.value; validateFlooringAllocations(); };
+      numInput.oninput = () => { slider.value = numInput.value; validateFlooringAllocations(); };
+
+      rowBottom.appendChild(slider);
+      rowBottom.appendChild(numInput);
+
+      item.appendChild(rowTop);
+      item.appendChild(rowBottom);
+      list.appendChild(item);
+
+      validateFlooringAllocations();
+    }
+
+    function autoBalanceFlooring() {
+      const items = document.querySelectorAll('.flooring-item');
+      if (items.length === 0) return;
+      const equalShare = Math.floor(100 / items.length);
+      let remainder = 100 - (equalShare * items.length);
+
+      items.forEach((item, idx) => {
+        const share = equalShare + (idx === 0 ? remainder : 0);
+        item.querySelector('.flooring-slider').value = share;
+        item.querySelector('.flooring-pct-input').value = share;
+      });
+      validateFlooringAllocations();
+    }
+
+    function validateFlooringAllocations() {
+      const inputs = document.querySelectorAll('.flooring-pct-input');
+      let total = 0;
+      inputs.forEach(i => total += parseFloat(i.value) || 0);
+
+      const badge = document.getElementById('flooringBadge');
+      badge.innerText = `Allocated: ${total}%`;
+      if (Math.abs(total - 100) < 0.1) {
+        badge.className = 'flooring-badge badge-valid';
+        return true;
+      } else {
+        badge.className = 'flooring-badge badge-invalid';
+        return false;
+      }
+    }
+
+    // 3. Drawing Controls
     const drawnItems = new L.FeatureGroup();
     map.addLayer(drawnItems);
-    let activePolygon = null, isEditing = false, currentDrawer = null, currentAreaSqm = 0;
+    let activePolygon = null, isEditing = false, currentAreaSqm = 0;
+    let manualPoints = [], tempMarkerLayer = new L.FeatureGroup().addTo(map);
 
     function startPolygonDraw() {
-      if (currentDrawer) currentDrawer.disable();
-      currentDrawer = new L.Draw.Polygon(map, {
-        allowIntersection: false, showArea: true,
-        shapeOptions: { color: '#38bdf8', weight: 3, fillColor: '#38bdf8', fillOpacity: 0.4 }
+      clearRoof();
+      manualPoints = [];
+      tempMarkerLayer.clearLayers();
+
+      document.getElementById('drawBanner').style.display = 'flex';
+      document.getElementById('drawStatus').innerText = 'Click on map to place roof corners (0 points)';
+      document.getElementById('btnPolyToggle').classList.add('active');
+
+      map.on('click', handleMapPointClick);
+    }
+
+    function handleMapPointClick(e) {
+      manualPoints.push(e.latlng);
+      const marker = L.circleMarker(e.latlng, {
+        radius: 5, color: '#38bdf8', fillColor: '#ffffff', fillOpacity: 1, weight: 2
       });
-      currentDrawer.enable();
+      tempMarkerLayer.addLayer(marker);
+
+      const count = manualPoints.length;
+      document.getElementById('drawStatus').innerText = `Roof corners plotted: ${count} point${count > 1 ? 's' : ''}`;
+    }
+
+    function finishPolygonTrace() {
+      if (manualPoints.length < 3) {
+        alert('Please click at least 3 corners around the roof before finishing.');
+        return;
+      }
+      map.off('click', handleMapPointClick);
+      tempMarkerLayer.clearLayers();
+      document.getElementById('drawBanner').style.display = 'none';
+      document.getElementById('btnPolyToggle').classList.remove('active');
+
+      activePolygon = L.polygon(manualPoints, {
+        color: '#38bdf8', weight: 3, fillColor: '#38bdf8', fillOpacity: 0.4
+      });
+      drawnItems.addLayer(activePolygon);
+      enableEditing(activePolygon);
+      updateArea(activePolygon);
+    }
+
+    function cancelPolygonTrace() {
+      map.off('click', handleMapPointClick);
+      tempMarkerLayer.clearLayers();
+      manualPoints = [];
+      document.getElementById('drawBanner').style.display = 'none';
+      document.getElementById('btnPolyToggle').classList.remove('active');
     }
 
     function spawnRoofBox() {
+      cancelPolygonTrace();
       clearRoof();
       const c = map.getCenter();
       const latlngs = [
@@ -333,15 +613,15 @@
       l.on('edit', () => updateArea(l));
     }
 
-    map.on(L.Draw.Event.CREATED, e => {
-      clearRoof(); activePolygon = e.layer; drawnItems.addLayer(activePolygon);
-      enableEditing(activePolygon); updateArea(activePolygon);
-    });
-
     function clearRoof() {
-      drawnItems.clearLayers(); if (currentDrawer) currentDrawer.disable();
-      activePolygon = null; isEditing = false; document.getElementById('btnEdit').classList.remove('active');
-      currentAreaSqm = 0; document.getElementById('areaDisplay').innerText = '0.00';
+      cancelPolygonTrace();
+      drawnItems.clearLayers();
+      activePolygon = null;
+      isEditing = false;
+      document.getElementById('btnEdit').classList.remove('active');
+      currentAreaSqm = 0;
+      document.getElementById('areaDisplay').innerText = '0.00';
+      document.getElementById('resultsContainer').style.display = 'none';
     }
 
     function updateArea(l) {
@@ -387,11 +667,20 @@
     // 5. REST API Execution
     async function calculateAudit() {
       if (currentAreaSqm <= 0) return alert('Please trace a roof polygon or click "▭ Quick Box" first.');
+      if (!validateFlooringAllocations()) return alert('Total flooring percentage must equal 100%. Use ⚖️ Auto-Balance or adjust sliders.');
+
+      const surface_splits = [];
+      document.querySelectorAll('.flooring-item').forEach(row => {
+        surface_splits.push({
+          surface: row.querySelector('.mat-select').value,
+          percentage: parseFloat(row.querySelector('.flooring-pct-input').value) || 0
+        });
+      });
 
       const payload = {
         roof_area_sqm: currentAreaSqm,
         annual_rainfall_mm: parseFloat(document.getElementById('rainInput').value),
-        surface_splits: [{ surface: document.getElementById('surfaceSelect').value, percentage: 100.0 }],
+        surface_splits: surface_splits,
         soil_key: document.getElementById('soilSelect').value,
         water_table_depth_m: parseFloat(document.getElementById('waterTableInput').value),
         roof_slope: document.getElementById('slopeSelect').value,
@@ -412,29 +701,41 @@
         const rec = audit["Engineering Recommendation"];
         const hydro = audit["Hydrology"];
         const roi = audit["Financial and Carbon ROI"];
+        const summary = audit["Catchment Summary"];
 
         const systemType = rec["System Type"] || rec["system_type"];
         const designRationale = rec["Design Rationale"] || rec["design_rationale"];
 
-        document.getElementById('resultsCard').style.display = 'flex';
-        document.getElementById('structureBadge').innerText = `${systemType}\n\n${designRationale}`;
-        document.getElementById('resYield').innerText = `${hydro["Annual Harvestable Liters"].toLocaleString('en-IN')} L`;
-        document.getElementById('resFlush').innerText = `${hydro["First Flush Diverter Liters"]} L`;
+        document.getElementById('resultsContainer').style.display = 'flex';
 
-        // Display Pit Dimensions if present
+        // 1. Hydrological Data
+        document.getElementById('resCoeff').innerText = summary["Composite runoff Coeff"];
+        document.getElementById('resYield').innerText = `${Number(hydro["Annual Harvestable Liters"]).toLocaleString('en-IN')} L`;
+        document.getElementById('resFlush').innerText = `${Number(hydro["First Flush Diverter Liters"]).toLocaleString('en-IN')} L`;
+
+        // 2. Civil Data
+        document.getElementById('resSystemType').innerText = systemType;
+        document.getElementById('resRationale').innerText = designRationale;
+
         const pitDims = rec["Recharge Pit Dimensions"];
-        const pitDimRow = document.getElementById('pitDimRow');
+        const pitBlock = document.getElementById('pitDimensionsBlock');
         if (pitDims && pitDims["Diameter Meters"]) {
-          pitDimRow.style.display = 'flex';
-          document.getElementById('resPitDim').innerText = `Ø ${pitDims["Diameter Meters"]}m × ${pitDims["Depth Meters"]}m deep`;
+          pitBlock.style.display = 'flex';
+          document.getElementById('resPitDim').innerText = `Ø ${pitDims["Diameter Meters"]}m × ${pitDims["Depth Meters"]}m (Vol: ${pitDims["Effective Volume m3"]} m³)`;
+          document.getElementById('resClearance').innerText = `${pitDims["Cgwb Clearance Buffer Meters"]}m buffer to water table`;
         } else {
-          pitDimRow.style.display = 'none';
+          pitBlock.style.display = 'none';
         }
 
-        document.getElementById('resCost').innerText = `₹ ${roi["Total capex inr"].toLocaleString('en-IN')}`;
-        document.getElementById('resSavings').innerText = `₹ ${roi["Annual savings inr"].toLocaleString('en-IN')}/yr`;
+        // 3. Financial Data
+        document.getElementById('resCost').innerText = `₹ ${Number(roi["Total capex inr"]).toLocaleString('en-IN')}`;
+        document.getElementById('resSavings').innerText = `₹ ${Number(roi["Annual savings inr"]).toLocaleString('en-IN')}/yr`;
         document.getElementById('resPayback').innerText = `${roi["Payback years"]} Yrs`;
+
+        // 4. Environmental Data
+        document.getElementById('resKwh').innerText = `${roi["Grid electricity saved kwh year"]} kWh/yr`;
         document.getElementById('resCO2').innerText = `${roi["CO2 reduction kg year"]} kg/yr`;
+
       } catch (err) {
         alert(err.message);
       }
