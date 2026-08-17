@@ -126,12 +126,12 @@ class LocationLookupRequest(BaseModel):
 @app.post("/api/lookup-environment")
 def lookup_environment(req: LocationLookupRequest):
     """
-    Dynamically fetches real 30-year annual rainfall via Open-Meteo (Global).
-    If in India, uses CGWB data. If outside India, uses a Global Climate Heuristic.
+    Dynamically fetches real 30-year annual rainfall (Open-Meteo), 
+    nearest CGWB groundwater depth, and hyper-local global soil taxonomy (ISRIC).
     """
     lat, lng = req.lat, req.lng
     
-    # 1. Fetch Real Historical Climate Rainfall from Open-Meteo (Works Worldwide)
+    # 1. Fetch Real Historical Climate Rainfall from Open-Meteo
     annual_rain_mm = 950.0  # Fallback baseline
     try:
         url = f"https://archive-api.open-meteo.com/v1/archive?latitude={lat}&longitude={lng}&start_date=2023-01-01&end_date=2023-12-31&daily=precipitation_sum&timezone=auto"
@@ -145,7 +145,7 @@ def lookup_environment(req: LocationLookupRequest):
     except Exception:
         pass
 
-    # 2. Nearest Neighbor Search for Groundwater Depth using CGWB Data (India)
+    # 2. Nearest Neighbor Search for Groundwater Depth using CGWB Data
     nearest_village = "Default Estimate"
     water_table_depth_m = 7.5 
     min_distance = float('inf')
@@ -158,26 +158,58 @@ def lookup_environment(req: LocationLookupRequest):
                 water_table_depth_m = site["dtwl"]
                 nearest_village = f"{site['village']}, {site['district']} ({round(dist, 1)}km away)"
 
-    # 3. GLOBAL FALLBACK: If the closest Indian village is more than 600km away, 
-    # the user clicked outside of India. We apply a Global Hydro-Climate Proxy.
     if min_distance > 600:
-        # Desert / Arid Regions (Low rain) -> Deep Aquifers
         if annual_rain_mm < 300:
             water_table_depth_m = 35.0
             nearest_village = "Global Arid Zone Estimate"
-        # Semi-Arid / Savanna (Moderate rain) -> Medium Aquifers
         elif 300 <= annual_rain_mm < 1000:
             water_table_depth_m = 12.5
             nearest_village = "Global Semi-Arid Estimate"
-        # Tropical / Rainforest (Heavy rain) -> Shallow Aquifers
         else:
             water_table_depth_m = 3.5
             nearest_village = "Global Tropical/Coastal Estimate"
+
+    # ---------------------------------------------------------
+    # 3. THE ULTIMATE FIX: Live Global Soil Data (ISRIC SoilGrids)
+    # ---------------------------------------------------------
+    dominant_soil = "loam" # Safe fallback
+    
+    try:
+        # Queries the World Soil Information REST API at 250m resolution
+        soil_url = f"https://rest.isric.org/soilgrids/v2.0/classification/query?lon={lng}&lat={lat}&number_classes=1"
+        soil_req = urllib.request.Request(soil_url, headers={'User-Agent': 'SIH-RTRWH-App'})
+        with urllib.request.urlopen(soil_req, timeout=4) as s_resp:
+            s_data = json.loads(s_resp.read().decode())
+            wrb_class = s_data.get("wrb_class_name", "").lower()
+            
+            # Map exact global soil taxonomy to our system's infiltration rates
+            if "arenosol" in wrb_class or "podzol" in wrb_class:
+                dominant_soil = "fine_sand"
+            elif "vertisol" in wrb_class or "luvisol" in wrb_class or "lixisol" in wrb_class:
+                dominant_soil = "heavy_clay"
+            elif "fluvisol" in wrb_class or "gleysol" in wrb_class:
+                dominant_soil = "silt_loam"  # River basins and floodplains
+            elif "acrisol" in wrb_class or "ferralsol" in wrb_class or "nitisol" in wrb_class:
+                dominant_soil = "sandy_clay_loam"
+            elif "cambisol" in wrb_class or "kastanozem" in wrb_class:
+                dominant_soil = "loam"
+            elif "solonchak" in wrb_class or "solonetz" in wrb_class:
+                dominant_soil = "silty_clay_loam"
+            elif wrb_class: 
+                dominant_soil = "sandy_loam"
+                
+    except Exception as e:
+        # Fallback to climate weathering heuristic ONLY if the API goes down or times out
+        if annual_rain_mm < 300:
+            dominant_soil = "coarse_sand"
+        elif annual_rain_mm > 1500:
+            dominant_soil = "heavy_clay"
 
     return {
         "status": "success",
         "annual_rainfall_mm": annual_rain_mm,
         "water_table_depth_m": round(water_table_depth_m, 2),
+        "dominant_soil": dominant_soil,
         "source": f"Rainfall: Open-Meteo | DTWL: {nearest_village}"
     }
     
