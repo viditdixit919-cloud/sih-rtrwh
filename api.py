@@ -169,41 +169,49 @@ def lookup_environment(req: LocationLookupRequest):
             water_table_depth_m = 3.5
             nearest_village = "Global Tropical/Coastal Estimate"
 
-    # ---------------------------------------------------------
-    # 3. THE ULTIMATE FIX: Live Global Soil Data (ISRIC SoilGrids)
-    # ---------------------------------------------------------
-    dominant_soil = "loam" # Safe fallback
     
-    try:
-        # Queries the World Soil Information REST API at 250m resolution
-        soil_url = f"https://rest.isric.org/soilgrids/v2.0/classification/query?lon={lng}&lat={lat}&number_classes=1"
-        soil_req = urllib.request.Request(soil_url, headers={'User-Agent': 'SIH-RTRWH-App'})
-        with urllib.request.urlopen(soil_req, timeout=4) as s_resp:
-            s_data = json.loads(s_resp.read().decode())
-            wrb_class = s_data.get("wrb_class_name", "").lower()
-            
-            # Map exact global soil taxonomy to our system's infiltration rates
-            if "arenosol" in wrb_class or "podzol" in wrb_class:
-                dominant_soil = "fine_sand"
-            elif "vertisol" in wrb_class or "luvisol" in wrb_class or "lixisol" in wrb_class:
-                dominant_soil = "heavy_clay"
-            elif "fluvisol" in wrb_class or "gleysol" in wrb_class:
-                dominant_soil = "silt_loam"  # River basins and floodplains
-            elif "acrisol" in wrb_class or "ferralsol" in wrb_class or "nitisol" in wrb_class:
-                dominant_soil = "sandy_clay_loam"
-            elif "cambisol" in wrb_class or "kastanozem" in wrb_class:
-                dominant_soil = "loam"
-            elif "solonchak" in wrb_class or "solonetz" in wrb_class:
-                dominant_soil = "silty_clay_loam"
-            elif wrb_class: 
-                dominant_soil = "sandy_loam"
-                
-    except Exception as e:
-        # Fallback to climate weathering heuristic ONLY if the API goes down or times out
+    # 3. BULLETPROOF GEOSPATIAL SOIL HEURISTIC
+    # ---------------------------------------------------------
+    dominant_soil = "loam" # Safe Global Default
+    
+    # --- A. India - High Precision Zones ---
+    if 24.0 < lat < 32.0 and 74.0 < lng < 88.0:
+        dominant_soil = "silt_loam"       # Indo-Gangetic Plains (UP, Bihar, Punjab, Bengal)
+    elif 18.0 < lat < 25.0 and 72.0 < lng < 80.0:
+        dominant_soil = "heavy_clay"      # Deccan Trap (Maharashtra, MP, Gujarat)
+    elif 8.0 < lat < 18.0 and 74.0 < lng < 81.0:
+        dominant_soil = "sandy_loam"      # South India (Red & Laterite Soils)
+    elif 22.0 < lat < 30.0 and 68.0 < lng < 74.0:
+        dominant_soil = "fine_sand"       # Thar Desert / Kutch (Arid Sand)
+
+    # --- B. Global Continents / Broad Zones ---
+    elif 15.0 < lat < 35.0 and -17.0 < lng < 60.0:
+        dominant_soil = "fine_sand"       # Sahara & Arabian Peninsula
+    elif -35.0 < lat < -15.0 and 113.0 < lng < 153.0:
+        dominant_soil = "sandy_loam"      # Australian Outback
+    elif 30.0 < lat < 50.0 and -100.0 < lng < -70.0:
+        dominant_soil = "loam"            # North American Great Plains
+    elif 30.0 < lat < 50.0 and -125.0 < lng < -100.0:
+        dominant_soil = "sandy_clay_loam" # North American Arid/Rockies
+    elif -20.0 < lat < 10.0 and -80.0 < lng < -35.0:
+        dominant_soil = "clay_loam"       # South American Amazon / Tropics
+    elif 35.0 < lat < 70.0 and -10.0 < lng < 40.0:
+        dominant_soil = "silt_loam"       # Europe Temperate Soils
+    elif -35.0 < lat < 15.0 and -20.0 < lng < 50.0:
+        dominant_soil = "sandy_clay"      # Sub-Saharan Africa
+    elif -10.0 < lat < 40.0 and 90.0 < lng < 150.0:
+        dominant_soil = "silty_clay_loam" # East & Southeast Asia
+    
+    # --- C. Ultimate Fallback: Base soil on Rainfall Weathering ---
+    else:
         if annual_rain_mm < 300:
-            dominant_soil = "coarse_sand"
-        elif annual_rain_mm > 1500:
-            dominant_soil = "heavy_clay"
+            dominant_soil = "coarse_sand" # Very dry, poorly weathered rock
+        elif 300 <= annual_rain_mm < 800:
+            dominant_soil = "sandy_loam"  # Moderately dry
+        elif 800 <= annual_rain_mm < 1500:
+            dominant_soil = "loam"        # Good rainfall, well-balanced
+        else:
+            dominant_soil = "heavy_clay"  # Extreme rainfall, heavily leached
 
     return {
         "status": "success",
