@@ -126,12 +126,12 @@ class LocationLookupRequest(BaseModel):
 @app.post("/api/lookup-environment")
 def lookup_environment(req: LocationLookupRequest):
     """
-    Dynamically fetches real 30-year annual rainfall via Open-Meteo 
-    and finds the nearest CGWB surveyed groundwater depth from the local dataset.
+    Dynamically fetches real 30-year annual rainfall via Open-Meteo (Global).
+    If in India, uses CGWB data. If outside India, uses a Global Climate Heuristic.
     """
     lat, lng = req.lat, req.lng
     
-    # 1. Fetch Real Historical Climate Rainfall from Open-Meteo
+    # 1. Fetch Real Historical Climate Rainfall from Open-Meteo (Works Worldwide)
     annual_rain_mm = 950.0  # Fallback baseline
     try:
         url = f"https://archive-api.open-meteo.com/v1/archive?latitude={lat}&longitude={lng}&start_date=2023-01-01&end_date=2023-12-31&daily=precipitation_sum&timezone=auto"
@@ -145,9 +145,9 @@ def lookup_environment(req: LocationLookupRequest):
     except Exception:
         pass
 
-    # 2. Nearest Neighbor Search for Groundwater Depth using CGWB Data
+    # 2. Nearest Neighbor Search for Groundwater Depth using CGWB Data (India)
     nearest_village = "Default Estimate"
-    water_table_depth_m = 7.5 # Default fallback
+    water_table_depth_m = 7.5 
     min_distance = float('inf')
 
     if CGWB_DATA:
@@ -158,12 +158,29 @@ def lookup_environment(req: LocationLookupRequest):
                 water_table_depth_m = site["dtwl"]
                 nearest_village = f"{site['village']}, {site['district']} ({round(dist, 1)}km away)"
 
+    # 3. GLOBAL FALLBACK: If the closest Indian village is more than 600km away, 
+    # the user clicked outside of India. We apply a Global Hydro-Climate Proxy.
+    if min_distance > 600:
+        # Desert / Arid Regions (Low rain) -> Deep Aquifers
+        if annual_rain_mm < 300:
+            water_table_depth_m = 35.0
+            nearest_village = "Global Arid Zone Estimate"
+        # Semi-Arid / Savanna (Moderate rain) -> Medium Aquifers
+        elif 300 <= annual_rain_mm < 1000:
+            water_table_depth_m = 12.5
+            nearest_village = "Global Semi-Arid Estimate"
+        # Tropical / Rainforest (Heavy rain) -> Shallow Aquifers
+        else:
+            water_table_depth_m = 3.5
+            nearest_village = "Global Tropical/Coastal Estimate"
+
     return {
         "status": "success",
         "annual_rainfall_mm": annual_rain_mm,
         "water_table_depth_m": round(water_table_depth_m, 2),
-        "source": f"Rainfall: Open-Meteo | DTWL: Nearest CGWB Station -> {nearest_village}"
+        "source": f"Rainfall: Open-Meteo | DTWL: {nearest_village}"
     }
+    
 
 @app.get("/")
 def serve_ui():
