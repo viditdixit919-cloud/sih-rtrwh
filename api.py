@@ -127,7 +127,7 @@ class LocationLookupRequest(BaseModel):
 def lookup_environment(req: LocationLookupRequest):
     """
     Dynamically fetches real 30-year annual rainfall (Open-Meteo), 
-    nearest CGWB groundwater depth, and hyper-local global soil taxonomy (ISRIC).
+    nearest CGWB groundwater depth, and hyper-local global soil taxonomy.
     """
     lat, lng = req.lat, req.lng
     
@@ -169,7 +169,6 @@ def lookup_environment(req: LocationLookupRequest):
             water_table_depth_m = 3.5
             nearest_village = "Global Tropical/Coastal Estimate"
 
-    
     # 3. BULLETPROOF GEOSPATIAL SOIL HEURISTIC
     # ---------------------------------------------------------
     dominant_soil = "loam" # Safe Global Default
@@ -220,7 +219,6 @@ def lookup_environment(req: LocationLookupRequest):
         "dominant_soil": dominant_soil,
         "source": f"Rainfall: Open-Meteo | DTWL: {nearest_village}"
     }
-    
 
 @app.get("/")
 def serve_ui():
