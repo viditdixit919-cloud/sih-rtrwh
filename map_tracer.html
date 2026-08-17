@@ -655,10 +655,10 @@
     async function reverseGeocodeAndFetchEnv(lat, lng) {
       document.getElementById('rainAutoText').innerText = ' (Fetching live data...)';
       document.getElementById('wtAutoText').innerText = ' (Fetching CGWB data...)';
+      document.getElementById('soilAutoText').innerText = ' (Analyzing region...)';
 
       let district = '';
       try {
-        // 1. Get Address
         const r = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lng}`);
         const d = await r.json();
         if (d && d.address) {
@@ -670,7 +670,6 @@
         document.getElementById('locationTag').innerText = '📍 Custom Roof Location';
       }
 
-      // 2. Fetch Auto Groundwater & Rainfall from our Backend
       try {
         const envRes = await fetch('/api/lookup-environment', {
           method: 'POST',
@@ -687,13 +686,30 @@
           document.getElementById('rainInput').value = envData.annual_rainfall_mm;
           document.getElementById('rainAutoText').innerText = ' ✓ Auto-Filled (Open-Meteo)';
         }
+        
+        // Auto-Select Soil with Debugging
+        if (envData.dominant_soil) {
+          console.log("Python suggested soil:", envData.dominant_soil);
+          const soilSelect = document.getElementById('soilSelect');
+          
+          let optionExists = Array.from(soilSelect.options).some(opt => opt.value === envData.dominant_soil);
+          if (optionExists) {
+            soilSelect.value = envData.dominant_soil;
+            document.getElementById('soilAutoText').innerText = ' ✓ Auto-Detected (Click to change)';
+          } else {
+            console.warn("Suggested soil key not found in dropdown options:", envData.dominant_soil);
+            soilSelect.value = "loam";
+            document.getElementById('soilAutoText').innerText = ' ✓ Defaulted to Loam';
+          }
+        }
       } catch (e) {
         document.getElementById('wtAutoText').innerText = ' (Manual input required)';
         document.getElementById('rainAutoText').innerText = ' (Manual input required)';
+        document.getElementById('soilAutoText').innerText = '';
         console.error("Could not fetch environmental data", e);
       }
     }
-
+     
     // Geocoding & GPS
     async function searchLocation() {
       const q = document.getElementById('searchInput').value.trim();
