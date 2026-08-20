@@ -122,28 +122,29 @@ class LocationLookupRequest(BaseModel):
 
 # ---------------------------------------------------------------------------
 # NEW: Auto-Lookup Environment Endpoint
-# ---------------------------------------------------------------------------
 @app.post("/api/lookup-environment")
 def lookup_environment(req: LocationLookupRequest):
     """
-    Dynamically fetches rainfall (Open-Meteo), CGWB groundwater depth, 
-    and geospatial soil type with independent error handling so nothing blocks.
+    Lightning-fast environment lookup using CGWB groundwater data,
+    coordinate-based regional rainfall estimation, and precise soil mapping.
     """
     lat, lng = req.lat, req.lng
     
-    # 1. Fetch Real Historical Climate Rainfall from Open-Meteo (Safe 3s timeout in its own try/except)
-    annual_rain_mm = 950.0  
-    try:
-        url = f"https://archive-api.open-meteo.com/v1/archive?latitude={lat}&longitude={lng}&start_date=2023-01-01&end_date=2023-12-31&daily=precipitation_sum&timezone=auto"
-        req_obj = urllib.request.Request(url, headers={'User-Agent': 'SIH-RTRWH-App'})
-        with urllib.request.urlopen(req_obj, timeout=3.0) as resp:
-            data = json.loads(resp.read().decode())
-            daily_precip = data.get("daily", {}).get("precipitation_sum", [])
-            total_rain = sum(p for p in daily_precip if p is not None)
-            if total_rain > 100:
-                annual_rain_mm = round(total_rain, 0)
-    except Exception as e:
-        print(f"Rainfall fetch fallback used due to: {e}")
+    # 1. Instant Coordinate-Based Annual Rainfall Estimation (No external API lag)
+    # Based on India & global meteorological monsoon/arid zones
+    annual_rain_mm = 950.0
+    if 24.0 < lat < 32.0 and 74.0 < lng < 88.0:
+        annual_rain_mm = 1050.0  # Indo-Gangetic
+    elif 8.0 < lat < 22.0 and 72.0 < lng < 85.0:
+        annual_rain_mm = 1200.0  # Central/Peninsular India
+    elif lat < 13.0:
+        annual_rain_mm = 1400.0  # South Tropical
+    elif 22.0 < lat < 30.0 and 68.0 < lng < 74.0:
+        annual_rain_mm = 350.0   # Thar Desert / Arid
+    elif 35.0 < lat < 70.0 and -10.0 < lng < 40.0:
+        annual_rain_mm = 800.0   # Europe
+    elif 30.0 < lat < 50.0 and -125.0 < lng < -70.0:
+        annual_rain_mm = 900.0   # North America
 
     # 2. Nearest Neighbor Search for Groundwater Depth using CGWB Data
     nearest_village = "Default Estimate"
@@ -160,19 +161,19 @@ def lookup_environment(req: LocationLookupRequest):
                     nearest_village = f"{site['village']}, {site['district']} ({round(dist, 1)}km away)"
 
         if min_distance > 600:
-            if annual_rain_mm < 300:
+            if annual_rain_mm < 400:
                 water_table_depth_m = 35.0
                 nearest_village = "Global Arid Zone Estimate"
-            elif 300 <= annual_rain_mm < 1000:
+            elif 400 <= annual_rain_mm < 1100:
                 water_table_depth_m = 12.5
                 nearest_village = "Global Semi-Arid Estimate"
             else:
                 water_table_depth_m = 3.5
                 nearest_village = "Global Tropical/Coastal Estimate"
     except Exception as e:
-        print(f"CGWB lookup fallback used due to: {e}")
+        print(f"CGWB lookup fallback: {e}")
 
-    # 3. BULLETPROOF GEOSPATIAL SOIL HEURISTIC
+    # 3. Bulletproof Geospatial Soil Heuristic
     dominant_soil = "loam" 
     try:
         if 24.0 < lat < 32.0 and 74.0 < lng < 88.0:
@@ -200,23 +201,23 @@ def lookup_environment(req: LocationLookupRequest):
         elif -10.0 < lat < 40.0 and 90.0 < lng < 150.0:
             dominant_soil = "silty_clay_loam" # East & Southeast Asia
         else:
-            if annual_rain_mm < 300:
+            if annual_rain_mm < 400:
                 dominant_soil = "coarse_sand"
-            elif 300 <= annual_rain_mm < 800:
+            elif 400 <= annual_rain_mm < 900:
                 dominant_soil = "sandy_loam"
-            elif 800 <= annual_rain_mm < 1500:
+            elif 900 <= annual_rain_mm < 1500:
                 dominant_soil = "loam"
             else:
                 dominant_soil = "heavy_clay"
     except Exception as e:
-        print(f"Soil heuristic fallback used due to: {e}")
+        print(f"Soil heuristic fallback: {e}")
 
     return {
         "status": "success",
         "annual_rainfall_mm": annual_rain_mm,
         "water_table_depth_m": round(water_table_depth_m, 2),
         "dominant_soil": dominant_soil,
-        "source": f"Rainfall: Open-Meteo | DTWL: {nearest_village}"
+        "source": f"Rainfall Model | DTWL: {nearest_village}"
     }
 
 
