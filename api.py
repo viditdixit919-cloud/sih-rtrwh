@@ -126,91 +126,90 @@ class LocationLookupRequest(BaseModel):
 @app.post("/api/lookup-environment")
 def lookup_environment(req: LocationLookupRequest):
     """
-    Dynamically fetches real 30-year annual rainfall (Open-Meteo), 
-    nearest CGWB groundwater depth, and hyper-local global soil taxonomy.
+    Dynamically fetches rainfall (Open-Meteo), CGWB groundwater depth, 
+    and geospatial soil type with independent error handling so nothing blocks.
     """
     lat, lng = req.lat, req.lng
     
-    # 1. Fetch Real Historical Climate Rainfall from Open-Meteo
-    annual_rain_mm = 950.0  # Fallback baseline
+    # 1. Fetch Real Historical Climate Rainfall from Open-Meteo (Safe 3s timeout in its own try/except)
+    annual_rain_mm = 950.0  
     try:
         url = f"https://archive-api.open-meteo.com/v1/archive?latitude={lat}&longitude={lng}&start_date=2023-01-01&end_date=2023-12-31&daily=precipitation_sum&timezone=auto"
         req_obj = urllib.request.Request(url, headers={'User-Agent': 'SIH-RTRWH-App'})
-        with urllib.request.urlopen(req_obj, timeout=3) as resp:
+        with urllib.request.urlopen(req_obj, timeout=3.0) as resp:
             data = json.loads(resp.read().decode())
             daily_precip = data.get("daily", {}).get("precipitation_sum", [])
             total_rain = sum(p for p in daily_precip if p is not None)
             if total_rain > 100:
                 annual_rain_mm = round(total_rain, 0)
-    except Exception:
-        pass
+    except Exception as e:
+        print(f"Rainfall fetch fallback used due to: {e}")
 
     # 2. Nearest Neighbor Search for Groundwater Depth using CGWB Data
     nearest_village = "Default Estimate"
     water_table_depth_m = 7.5 
     min_distance = float('inf')
 
-    if CGWB_DATA:
-        for site in CGWB_DATA:
-            dist = get_haversine_distance(lat, lng, site["lat"], site["lng"])
-            if dist < min_distance:
-                min_distance = dist
-                water_table_depth_m = site["dtwl"]
-                nearest_village = f"{site['village']}, {site['district']} ({round(dist, 1)}km away)"
+    try:
+        if CGWB_DATA:
+            for site in CGWB_DATA:
+                dist = get_haversine_distance(lat, lng, site["lat"], site["lng"])
+                if dist < min_distance:
+                    min_distance = dist
+                    water_table_depth_m = site["dtwl"]
+                    nearest_village = f"{site['village']}, {site['district']} ({round(dist, 1)}km away)"
 
-    if min_distance > 600:
-        if annual_rain_mm < 300:
-            water_table_depth_m = 35.0
-            nearest_village = "Global Arid Zone Estimate"
-        elif 300 <= annual_rain_mm < 1000:
-            water_table_depth_m = 12.5
-            nearest_village = "Global Semi-Arid Estimate"
-        else:
-            water_table_depth_m = 3.5
-            nearest_village = "Global Tropical/Coastal Estimate"
+        if min_distance > 600:
+            if annual_rain_mm < 300:
+                water_table_depth_m = 35.0
+                nearest_village = "Global Arid Zone Estimate"
+            elif 300 <= annual_rain_mm < 1000:
+                water_table_depth_m = 12.5
+                nearest_village = "Global Semi-Arid Estimate"
+            else:
+                water_table_depth_m = 3.5
+                nearest_village = "Global Tropical/Coastal Estimate"
+    except Exception as e:
+        print(f"CGWB lookup fallback used due to: {e}")
 
     # 3. BULLETPROOF GEOSPATIAL SOIL HEURISTIC
-    # ---------------------------------------------------------
-    dominant_soil = "loam" # Safe Global Default
-    
-    # --- A. India - High Precision Zones ---
-    if 24.0 < lat < 32.0 and 74.0 < lng < 88.0:
-        dominant_soil = "silt_loam"       # Indo-Gangetic Plains (UP, Bihar, Punjab, Bengal)
-    elif 18.0 < lat < 25.0 and 72.0 < lng < 80.0:
-        dominant_soil = "heavy_clay"      # Deccan Trap (Maharashtra, MP, Gujarat)
-    elif 8.0 < lat < 18.0 and 74.0 < lng < 81.0:
-        dominant_soil = "sandy_loam"      # South India (Red & Laterite Soils)
-    elif 22.0 < lat < 30.0 and 68.0 < lng < 74.0:
-        dominant_soil = "fine_sand"       # Thar Desert / Kutch (Arid Sand)
-
-    # --- B. Global Continents / Broad Zones ---
-    elif 15.0 < lat < 35.0 and -17.0 < lng < 60.0:
-        dominant_soil = "fine_sand"       # Sahara & Arabian Peninsula
-    elif -35.0 < lat < -15.0 and 113.0 < lng < 153.0:
-        dominant_soil = "sandy_loam"      # Australian Outback
-    elif 30.0 < lat < 50.0 and -100.0 < lng < -70.0:
-        dominant_soil = "loam"            # North American Great Plains
-    elif 30.0 < lat < 50.0 and -125.0 < lng < -100.0:
-        dominant_soil = "sandy_clay_loam" # North American Arid/Rockies
-    elif -20.0 < lat < 10.0 and -80.0 < lng < -35.0:
-        dominant_soil = "clay_loam"       # South American Amazon / Tropics
-    elif 35.0 < lat < 70.0 and -10.0 < lng < 40.0:
-        dominant_soil = "silt_loam"       # Europe Temperate Soils
-    elif -35.0 < lat < 15.0 and -20.0 < lng < 50.0:
-        dominant_soil = "sandy_clay"      # Sub-Saharan Africa
-    elif -10.0 < lat < 40.0 and 90.0 < lng < 150.0:
-        dominant_soil = "silty_clay_loam" # East & Southeast Asia
-    
-    # --- C. Ultimate Fallback: Base soil on Rainfall Weathering ---
-    else:
-        if annual_rain_mm < 300:
-            dominant_soil = "coarse_sand" # Very dry, poorly weathered rock
-        elif 300 <= annual_rain_mm < 800:
-            dominant_soil = "sandy_loam"  # Moderately dry
-        elif 800 <= annual_rain_mm < 1500:
-            dominant_soil = "loam"        # Good rainfall, well-balanced
+    dominant_soil = "loam" 
+    try:
+        if 24.0 < lat < 32.0 and 74.0 < lng < 88.0:
+            dominant_soil = "silt_loam"       # Indo-Gangetic Plains
+        elif 18.0 < lat < 25.0 and 72.0 < lng < 80.0:
+            dominant_soil = "heavy_clay"      # Deccan Trap / Black Cotton
+        elif 8.0 < lat < 18.0 and 74.0 < lng < 81.0:
+            dominant_soil = "sandy_loam"      # South India Red/Laterite
+        elif 22.0 < lat < 30.0 and 68.0 < lng < 74.0:
+            dominant_soil = "fine_sand"       # Thar Desert / Kutch
+        elif 15.0 < lat < 35.0 and -17.0 < lng < 60.0:
+            dominant_soil = "fine_sand"       # Sahara & Arabian Peninsula
+        elif -35.0 < lat < -15.0 and 113.0 < lng < 153.0:
+            dominant_soil = "sandy_loam"      # Australian Outback
+        elif 30.0 < lat < 50.0 and -100.0 < lng < -70.0:
+            dominant_soil = "loam"            # North American Great Plains
+        elif 30.0 < lat < 50.0 and -125.0 < lng < -100.0:
+            dominant_soil = "sandy_clay_loam" # North American Arid/Rockies
+        elif -20.0 < lat < 10.0 and -80.0 < lng < -35.0:
+            dominant_soil = "clay_loam"       # South American Amazon / Tropics
+        elif 35.0 < lat < 70.0 and -10.0 < lng < 40.0:
+            dominant_soil = "silt_loam"       # Europe Temperate Soils
+        elif -35.0 < lat < 15.0 and -20.0 < lng < 50.0:
+            dominant_soil = "sandy_clay"      # Sub-Saharan Africa
+        elif -10.0 < lat < 40.0 and 90.0 < lng < 150.0:
+            dominant_soil = "silty_clay_loam" # East & Southeast Asia
         else:
-            dominant_soil = "heavy_clay"  # Extreme rainfall, heavily leached
+            if annual_rain_mm < 300:
+                dominant_soil = "coarse_sand"
+            elif 300 <= annual_rain_mm < 800:
+                dominant_soil = "sandy_loam"
+            elif 800 <= annual_rain_mm < 1500:
+                dominant_soil = "loam"
+            else:
+                dominant_soil = "heavy_clay"
+    except Exception as e:
+        print(f"Soil heuristic fallback used due to: {e}")
 
     return {
         "status": "success",
@@ -219,6 +218,7 @@ def lookup_environment(req: LocationLookupRequest):
         "dominant_soil": dominant_soil,
         "source": f"Rainfall: Open-Meteo | DTWL: {nearest_village}"
     }
+
 
 @app.get("/")
 def serve_ui():
