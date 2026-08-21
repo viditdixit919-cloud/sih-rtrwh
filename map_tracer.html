@@ -653,8 +653,8 @@
     }
 
     async function reverseGeocodeAndFetchEnv(lat, lng) {
-      document.getElementById('rainAutoText').innerText = ' (Fetching...)';
-      document.getElementById('wtAutoText').innerText = ' (Fetching...)';
+      document.getElementById('rainAutoText').innerText = ' (Analyzing...)';
+      document.getElementById('wtAutoText').innerText = ' (Analyzing...)';
       document.getElementById('soilAutoText').innerText = ' (Analyzing...)';
 
       let district = '';
@@ -670,37 +670,52 @@
         document.getElementById('locationTag').innerText = '📍 Custom Roof Location';
       }
 
-      try {
-        const envRes = await fetch('/api/lookup-environment', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ lat: lat, lng: lng, district: district })
-        });
-        const resJson = await envRes.json();
-        
-        if (resJson.status === "success") {
-          const envData = resJson;
-          
-          if (envData.water_table_depth_m !== undefined) {
-            document.getElementById('waterTableInput').value = envData.water_table_depth_m;
-            document.getElementById('wtAutoText').innerText = ' ✓ Updated';
-          }
-          if (envData.annual_rainfall_mm !== undefined) {
-            document.getElementById('rainInput').value = envData.annual_rainfall_mm;
-            document.getElementById('rainAutoText').innerText = ' ✓ Updated';
-          }
-          if (envData.dominant_soil) {
-            const soilSelect = document.getElementById('soilSelect');
-            soilSelect.value = envData.dominant_soil;
-            document.getElementById('soilAutoText').innerText = ' ✓ Detected';
-          }
-        }
-      } catch (e) {
-        console.error("Fetch error:", e);
-        document.getElementById('wtAutoText').innerText = ' (Error)';
-        document.getElementById('rainAutoText').innerText = ' (Error)';
-        document.getElementById('soilAutoText').innerText = '';
+      // --- INSTANT LOCAL GEOSPATIAL HEURISTIC (Zero Server Lag) ---
+      let annual_rain_mm = 950.0;
+      let water_table_depth_m = 7.5;
+      let dominant_soil = "loam";
+
+      // 1. Regional Rainfall Estimation
+      if (lat > 24.0 && lat < 32.0 && lng > 74.0 && lng < 88.0) {
+        annual_rain_mm = 1050.0; // Indo-Gangetic Plains
+      } else if (lat > 8.0 && lat < 22.0 && lng > 72.0 && lng < 85.0) {
+        annual_rain_mm = 1200.0; // Central/Peninsular India
+      } else if (lat < 13.0) {
+        annual_rain_mm = 1400.0; // South Tropical
+      } else if (lat > 22.0 && lat < 30.0 && lng > 68.0 && lng < 74.0) {
+        annual_rain_mm = 350.0;  // Thar Desert
       }
+
+      // 2. Groundwater Depth Estimation
+      if (annual_rain_mm < 400) {
+        water_table_depth_m = 35.0;
+      } else if (annual_rain_mm < 1100) {
+        water_table_depth_m = 12.5;
+      } else {
+        water_table_depth_m = 4.5;
+      }
+
+      // 3. Exact Soil Key Mapping
+      if (lat > 24.0 && lat < 32.0 && lng > 74.0 && lng < 88.0) {
+        dominant_soil = "silt_loam";
+      } else if (lat > 18.0 && lat < 25.0 && lng > 72.0 && lng < 80.0) {
+        dominant_soil = "heavy_clay";
+      } else if (lat > 8.0 && lat < 18.0 && lng > 74.0 && lng < 81.0) {
+        dominant_soil = "sandy_loam";
+      } else if (lat > 22.0 && lat < 30.0 && lng > 68.0 && lng < 74.0) {
+        dominant_soil = "fine_sand";
+      }
+
+      // Instantly inject values into form fields
+      document.getElementById('waterTableInput').value = water_table_depth_m;
+      document.getElementById('wtAutoText').innerText = ' ✓ Auto-Filled (Model)';
+      
+      document.getElementById('rainInput').value = annual_rain_mm;
+      document.getElementById('rainAutoText').innerText = ' ✓ Auto-Filled (Model)';
+      
+      const soilSelect = document.getElementById('soilSelect');
+      soilSelect.value = dominant_soil;
+      document.getElementById('soilAutoText').innerText = ' ✓ Auto-Detected (Model)';
     }
      
     // Geocoding & GPS
