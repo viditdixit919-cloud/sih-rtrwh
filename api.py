@@ -110,7 +110,6 @@ class LocationLookupRequest(BaseModel):
 def lookup_environment(req: LocationLookupRequest):
     lat, lng = req.lat, req.lng
     
-    # 1. Rainfall estimation based on region
     annual_rain_mm = 950.0
     if 24.0 < lat < 32.0 and 74.0 < lng < 88.0:
         annual_rain_mm = 1050.0
@@ -121,7 +120,6 @@ def lookup_environment(req: LocationLookupRequest):
     elif 22.0 < lat < 30.0 and 68.0 < lng < 74.0:
         annual_rain_mm = 350.0
 
-    # 2. Groundwater Depth via CGWB
     nearest_village = "Default Estimate"
     water_table_depth_m = 7.5 
     min_distance = float('inf')
@@ -138,7 +136,6 @@ def lookup_environment(req: LocationLookupRequest):
         water_table_depth_m = 12.5
         nearest_village = "Global Regional Estimate"
 
-    # 3. Soil selection matching exact keys
     dominant_soil = "loam"
     if 24.0 < lat < 32.0 and 74.0 < lng < 88.0:
         dominant_soil = "silt_loam"
