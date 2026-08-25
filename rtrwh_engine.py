@@ -349,6 +349,7 @@ if __name__ == "__main__":
             remaining_percentage -= pct
 
         print("\n--- Select Soil Condition at Location ---")
+        print(f"  Total soil options available: {len(soil_options)}")
         for idx, (_, name) in enumerate(soil_options, 1):
             print(f"  {idx:2d}. {name}")
 
