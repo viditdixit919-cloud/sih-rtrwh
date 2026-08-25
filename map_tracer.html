@@ -136,7 +136,6 @@
     }
     .flooring-item-bottom { display: flex; align-items: center; gap: 8px; }
     
-    /* FIX: Added 'appearance: none;' to fix the VS Code warning */
     .flooring-slider {
       flex: 1; height: 5px; -webkit-appearance: none; appearance: none; background: #334155; border-radius: 4px; outline: none;
     }
@@ -287,7 +286,10 @@
       </div>
 
       <div class="form-group">
-        <label>Subsurface Soil Category</label>
+        <label>
+          Subsurface Soil Category
+          <span class="auto-fetch-text" id="soilAutoText"></span>
+        </label>
         <select id="soilSelect" class="form-select"></select>
       </div>
 
@@ -640,6 +642,7 @@
       // Reset texts
       document.getElementById('rainAutoText').innerText = '';
       document.getElementById('wtAutoText').innerText = '';
+      document.getElementById('soilAutoText').innerText = '';
     }
 
     function updateArea(l) {
@@ -717,7 +720,7 @@
       soilSelect.value = dominant_soil;
       document.getElementById('soilAutoText').innerText = ' ✓ Auto-Detected (Model)';
     }
-     
+      
     // Geocoding & GPS
     async function searchLocation() {
       const q = document.getElementById('searchInput').value.trim();
